@@ -21,13 +21,14 @@ import { HamburgerIcon, CloseIcon, MoonIcon, SunIcon } from '@chakra-ui/icons';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 const navItems = [
   { name: 'Home', path: '/' },
   { name: 'Rates', path: '/rates' },
   { name: 'Submit', path: '/submit' },
   { name: 'Transactions', path: '/transactions', auth: true },
+  { name: 'My Profile', path: '/my-profile', auth: true },
   { name: 'Admin', path: '/admin', auth: true, admin: true },
 ];
 
@@ -94,7 +95,7 @@ const Header = () => {
         py={4}
         boxShadow="sm"
       >
-        <Flex justify="space-between" align="center" maxW="7xl" mx="auto">
+        <Flex justify="space-between" align="center" minW="80vw" maxW="100vw" mx="auto">
           {/* Logo */}
           <RouterLink to="/">
             <Text

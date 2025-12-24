@@ -84,7 +84,7 @@ const Login = () => {
 
         try {
             const response = await axios.post(
-                'https://api.cardora.net/api/auth/login',
+                'http://localhost:5000/api/auth/login',
                 { username, password },
                 { headers: { 'Content-Type': 'application/json' } }
             );

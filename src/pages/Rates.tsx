@@ -107,7 +107,7 @@ const Rates = () => {
 
   if (loading) {
     return (
-      <Center minH="80vh">
+      <Center minH="100vh">
         <VStack spacing={4}>
           <Spinner size="xl" thickness="4px" color="blue.500" />
           <Text>Loading latest rates...</Text>
@@ -118,7 +118,7 @@ const Rates = () => {
 
   if (error) {
     return (
-      <Center minH="80vh">
+      <Center minH="100vh" minW="100vw">
         <VStack spacing={4}>
           <Text color="red.500" fontSize="xl" fontWeight="bold">
             Oops!
@@ -138,7 +138,7 @@ const Rates = () => {
   }
 
   return (
-    <Box p={{ base: 4, md: 8 }} maxW="1200px" mx="auto">
+    <Box p={{ base: 4, md: 8 }} minW="100vw" mx="auto">
       <Heading mb={6} size="xl" textAlign="center">
         Gift Card Exchange Rates
       </Heading>

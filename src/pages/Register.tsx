@@ -10,6 +10,7 @@ import {
   useToast,
   useColorModeValue,
   Text,
+  HStack,
 } from '@chakra-ui/react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import axios from 'axios';
@@ -20,6 +21,8 @@ const MotionBox = motion.create(Box);
 const Register = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -39,7 +42,7 @@ const Register = () => {
 
       const response = await axios.post(
         'https://api.cardora.net/api/auth/register',
-        { username, email, password, isAdmin: false },
+        { firstName, lastName, username, email, password, isAdmin: false },
         { headers: { 'Content-Type': 'application/json' } }
       );
 
@@ -81,13 +84,34 @@ const Register = () => {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.6 }}
-      minW="100vw">
+      minW="100vw"
+      minH="100vh">
       <Box p={{ base: 6, md: 8 }} maxW="400px" mx="auto">
         <VStack spacing={8}>
           <Heading textAlign="center">Join Cardora</Heading>
 
           <form onSubmit={handleSubmit} style={{ width: '100%' }}>
             <VStack spacing={5}>
+              <HStack spacing={4}>
+                <FormControl isRequired>
+                  <FormLabel>First Name</FormLabel>
+                  <Input
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value.trim())}
+                    placeholder="Enter your first name"
+                    isDisabled={isSubmitting}
+                  />
+                </FormControl>
+                <FormControl isRequired>
+                  <FormLabel>Last Name</FormLabel>
+                  <Input
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value.trim())}
+                    placeholder="Enter your last name"
+                    isDisabled={isSubmitting}
+                  />
+                </FormControl>
+              </HStack>
               <FormControl isRequired>
                 <FormLabel>Username</FormLabel>
                 <Input

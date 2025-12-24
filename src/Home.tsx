@@ -20,7 +20,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { FaGift, FaExchangeAlt, FaMoneyBillWave } from 'react-icons/fa';
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 interface Rate {
     id: number;

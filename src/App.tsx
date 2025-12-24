@@ -6,6 +6,7 @@ import Register from "./pages/Register";
 import Submit from "./pages/Submit";
 import Transactions from "./pages/Transactions";
 import AdminDashboard from "./pages/AdminDashboard";
+import MyProfile from "./pages/MyProfile";
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
       <Route path="/submit" element={<Submit />} />
       <Route path="/transactions" element={<Transactions />} />
       <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/my-profile" element={<MyProfile />} />
     </Routes>
   )
 }

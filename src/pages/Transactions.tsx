@@ -47,13 +47,12 @@ const Transactions = () => {
         const fetchTransactions = async () => {
             const token = localStorage.getItem('token');
 
-            // Early exit + redirect if not authenticated
             if (!token) {
                 toast({
                     title: 'Authentication required',
                     description: 'Please log in to view your transactions',
                     status: 'warning',
-                    duration: 5000,
+                    duration: 3000,
                     isClosable: true,
                 });
                 navigate('/login');
@@ -98,7 +97,7 @@ const Transactions = () => {
                     title: 'Error',
                     description: message,
                     status: 'error',
-                    duration: 6000,
+                    duration: 3000,
                     isClosable: true,
                 });
             } finally {

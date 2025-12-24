@@ -15,13 +15,16 @@ import {
   FormLabel,
   Select,
   useToast,
-  useColorModeValue,
   Spinner,
   Center,
   Text,
   HStack,
+  useColorModeValue,
 } from '@chakra-ui/react';
 import axios from 'axios';
+import { motion } from 'framer-motion';
+
+const MotionBox = motion.create(Box);
 
 interface Transaction {
   id: number;
@@ -29,7 +32,7 @@ interface Transaction {
   giftCardType: string;
   value: number;
   status: string;
-  // submittedAt?: string; // if you want to show it later
+  submittedAt?: string;
 }
 
 interface Rate {
@@ -52,13 +55,14 @@ const AdminDashboard = () => {
 
   const toast = useToast();
 
-  // Dynamic colors
+  // All dynamic colors at the very top (no conditionals before hooks)
   const submitBg = useColorModeValue('blue.500', 'blue.300');
   const buttonColor = useColorModeValue('white', 'gray.800');
   const approvedBg = useColorModeValue('green.500', 'green.300');
   const rejectedBg = useColorModeValue('red.500', 'red.300');
   const tableBg = useColorModeValue('white', 'gray.800');
   const tableBorder = useColorModeValue('gray.200', 'gray.700');
+  const tableHeadBg = useColorModeValue('gray.50', 'gray.700');
 
   useEffect(() => {
     fetchTransactions();
@@ -73,6 +77,7 @@ const AdminDashboard = () => {
         description: 'Please log in as admin',
         status: 'warning',
         duration: 5000,
+        isClosable: true,
       });
       return;
     }
@@ -82,6 +87,7 @@ const AdminDashboard = () => {
       const response = await axios.get<Transaction[]>('https://api.cardora.net/api/transactions', {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log('Fetched transactions:', response.data);
       setTransactions(response.data);
     } catch (error: any) {
       const message =
@@ -141,7 +147,7 @@ const AdminDashboard = () => {
 
       toast({
         title: 'Success',
-        description: `Transaction ${status}`,
+        description: `Transaction ${status}d`,
         status: 'success',
         duration: 3000,
         isClosable: true,
@@ -219,15 +225,22 @@ const AdminDashboard = () => {
   };
 
   return (
-    <Box minW="100vw" p={{ base: 4, md: 8 }} maxW="1200px" mx="auto">
+    <MotionBox initial={{ opacity: 0, y: 40 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6 }} 
+      p={{ base: 4, md: 8 }} 
+      maxW="100vw" 
+      minW="100vw" 
+      mx="auto">
       <Heading mb={8} size="2xl" textAlign="center">
         Admin Dashboard
       </Heading>
 
       <VStack spacing={12}>
         {/* Transactions Section */}
-        <Box w="full">
-          <Heading textAlign="center" size="lg" mb={6}>
+        <MotionBox w="full">
+          <Heading size="lg" mb={6}>
             Transactions
           </Heading>
 
@@ -241,20 +254,24 @@ const AdminDashboard = () => {
           ) : transactions.length === 0 ? (
             <Center py={10}>
               <Text fontSize="lg" color="gray.500">
-                No transactions yet
+                No transactions found
               </Text>
             </Center>
           ) : (
-            <Box
+            <MotionBox
               overflowX="auto"
               bg={tableBg}
               borderRadius="lg"
               border="1px solid"
               borderColor={tableBorder}
               boxShadow="md"
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
             >
               <Table variant="simple">
-                <Thead bg={useColorModeValue('gray.50', 'gray.700')}>
+                <Thead bg={tableHeadBg}>
                   <Tr>
                     <Th>ID</Th>
                     <Th>User</Th>
@@ -278,8 +295,8 @@ const AdminDashboard = () => {
                             t.status === 'approved'
                               ? 'green.500'
                               : t.status === 'rejected'
-                              ? 'red.500'
-                              : 'yellow.600'
+                                ? 'red.500'
+                                : 'yellow.600'
                           }
                         >
                           {t.status.charAt(0).toUpperCase() + t.status.slice(1)}
@@ -313,13 +330,13 @@ const AdminDashboard = () => {
                   ))}
                 </Tbody>
               </Table>
-            </Box>
+            </MotionBox>
           )}
-        </Box>
+        </MotionBox>
 
         {/* Rates Management Section */}
-        <Box w="full">
-          <Heading textAlign="center" size="lg" mb={6}>
+        <MotionBox w="full">
+          <Heading size="lg" mb={6}>
             Manage Rates
           </Heading>
 
@@ -381,7 +398,11 @@ const AdminDashboard = () => {
               </form>
 
               {/* Rates Table */}
-              <Box
+              <MotionBox
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
                 overflowX="auto"
                 bg={tableBg}
                 borderRadius="lg"
@@ -390,7 +411,7 @@ const AdminDashboard = () => {
                 boxShadow="md"
               >
                 <Table variant="simple">
-                  <Thead bg={useColorModeValue('gray.50', 'gray.700')}>
+                  <Thead bg={tableHeadBg}>
                     <Tr>
                       <Th>ID</Th>
                       <Th>Gift Card</Th>
@@ -416,12 +437,12 @@ const AdminDashboard = () => {
                     ))}
                   </Tbody>
                 </Table>
-              </Box>
+              </MotionBox>
             </>
           )}
-        </Box>
+        </MotionBox>
       </VStack>
-    </Box>
+    </MotionBox>
   );
 };
 
