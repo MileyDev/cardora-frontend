@@ -62,15 +62,15 @@ const Register = () => {
       console.error('Register error:', error.response?.data, error.message);
 
       const errorMessage =
-        error.response?.data?.Message ||
-        error.response?.data?.message ||
+        error.response?.data?.Error ||
+        error.response?.data ||
         'An error occurred during registration';
 
       toast({
         title: 'Registration failed',
         description: errorMessage,
         status: 'error',
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
       });
     } finally {

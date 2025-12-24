@@ -84,7 +84,7 @@ const Login = () => {
 
         try {
             const response = await axios.post(
-                'http://localhost:5000/api/auth/login',
+                'https://api.cardora.net/api/auth/login',
                 { username, password },
                 { headers: { 'Content-Type': 'application/json' } }
             );
@@ -116,7 +116,8 @@ const Login = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            minW="100vw">
+            minW="100vw"
+            minH="100vh">
             <Box p={{ base: 6, md: 8 }} maxW="400px" mx="auto">
                 <VStack spacing={8}>
                     <Heading textAlign="center">Welcome Back</Heading>

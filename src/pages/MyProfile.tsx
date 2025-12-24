@@ -182,7 +182,7 @@ const MyProfile = () => {
   }
 
   return (
-    <Box p={{ base: 4, md: 8 }} maxW="100vw" minW="100vw" mx="auto">
+    <Box p={{ base: 4, md: 8 }} maxW="100vw" minW="100vw" minH="100vh" mx="auto">
       <Heading mb={8} size="2xl" textAlign="center">
         My Profile
       </Heading>
