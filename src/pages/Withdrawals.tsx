@@ -138,7 +138,7 @@ const Withdrawals = () => {
   }
 
   return (
-    <Box p={{ base: 4, md: 8 }} maxW="container.xl" mx="auto" minH="100vh">
+    <Box p={{ base: 4, md: 8 }} maxW="90vw" mx="auto" minH="100vh">
       <Heading mb={8} textAlign="center">
         Withdrawal History
       </Heading>

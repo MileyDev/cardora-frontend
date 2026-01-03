@@ -100,16 +100,19 @@ function Home() {
               icon: FaGift,
               title: '1. Choose Your Card',
               text: 'Select from a wide range of supported gift cards.',
+              color: 'blue.400',
             },
             {
               icon: FaExchangeAlt,
               title: '2. Get Instant Rate',
               text: 'See the best conversion rate for your card in seconds.',
+              color: 'purple.400',
             },
             {
               icon: FaMoneyBillWave,
               title: '3. Get Paid Fast',
               text: 'Receive your money instantly after verification.',
+              color: 'green.400',
             },
           ].map((step, idx) => (
             <MotionBox
@@ -123,8 +126,8 @@ function Home() {
               p={6}
             >
               <CardHeader>
-                <Icon as={step.icon} boxSize={10} color="blue.400" />
-                <Heading size="md" color={viewBg}>
+                <Icon as={step.icon} boxSize={10} color={step.color} />
+                <Heading size="md" color={step.color} mt={4}>
                   {step.title}
                 </Heading>
               </CardHeader>
