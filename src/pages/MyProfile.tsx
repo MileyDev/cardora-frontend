@@ -23,13 +23,16 @@ import {
   StatHelpText,
   Flex,
   Badge,
+  Spacer,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FaWallet, FaExchangeAlt, FaUserCircle, FaSignOutAlt, FaCreditCard } from 'react-icons/fa';
+import { FaWallet, FaExchangeAlt, FaUserCircle, FaSignOutAlt, FaCreditCard, FaLock, FaHeadset } from 'react-icons/fa';
 import { motion } from 'framer-motion';
+import { ChevronRightIcon } from '@chakra-ui/icons';
 
 const MotionCard = motion.create(Card);
+const MotionBox = motion.create(Box);
 
 interface LedgerEntry {
   amount: number;
@@ -39,13 +42,13 @@ interface LedgerEntry {
 }
 
 interface ProfileInfo {
-    username: string;
-    avatarUrl: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    isKycVerified: boolean;
-    createdAt: string;
+  username: string;
+  avatarUrl: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  isKycVerified: boolean;
+  createdAt: string;
 }
 
 interface ProfileData {
@@ -98,9 +101,9 @@ const MyProfile = () => {
         });
 
         const basicInfoRes = await axios.get<ProfileInfo>('https://api.cardora.net/api/user/me', {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            }
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
         })
 
         setProfile(response.data);
@@ -149,6 +152,39 @@ const MyProfile = () => {
     navigate('/login');
   };
 
+  const settingsNav = [
+    {
+      title: "Manage Bank Accounts",
+      icon: FaCreditCard,
+      path: "/bank-details",
+      color: "purple.500",
+    },
+    {
+      title: "Withdrawal History",
+      icon: FaExchangeAlt,
+      path: "/history",
+      color: "blue.500",
+    },
+    {
+      title: "Security & Password",
+      icon: FaLock,
+      path: "/security", // todo: implement later
+      color: "orange.500",
+    },
+    {
+      title: "Contact Support",
+      icon: FaHeadset,
+      path: "/support",
+      color: "teal.500",
+    },
+    {
+      title: "Logout",
+      icon: FaSignOutAlt,
+      onClick: handleLogout,
+      color: "red.500",
+    },
+  ];
+
   const totalBalance = profile ? profile.balance.availableBalance + profile.balance.lockedBalance : 0;
   const totalTransactions = profile ? profile.ledger.length : 0;
 
@@ -163,7 +199,7 @@ const MyProfile = () => {
     );
   }
 
-  if (error || !profile ) {
+  if (error || !profile) {
     return (
       <Center minH="100vh">
         <VStack spacing={4}>
@@ -266,67 +302,99 @@ const MyProfile = () => {
 
                 <Stat>
                   <StatLabel>Account Type</StatLabel>
-                  <StatNumber>User</StatNumber> {/* Update if you have roles */}
+                  <StatNumber>User</StatNumber>
                 </Stat>
               </SimpleGrid>
             </VStack>
           </CardBody>
         </MotionCard>
 
-        {/* Quick Actions Grid */}
-        <Heading size="lg" mb={6}>
-          Quick Actions
-        </Heading>
-        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
-          {[
-            {
-              title: 'View Transactions',
-              icon: FaExchangeAlt,
-              path: '/transactions',
-              color: 'blue.500',
-            },
-            {
-              title: 'Withdraw Funds',
-              icon: FaCreditCard,
-              path: '/withdraw',
-              color: 'green.500',
-            },
-            {
-              title: 'Logout',
-              icon: FaSignOutAlt,
-              onClick: handleLogout,
-              color: 'red.500',
-            },
-          ].map((item, index) => (
-            <MotionCard
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
-              cursor="pointer"
-              onClick={item.onClick || (() => navigate(item.path))}
-              bg={cardBg}
-              borderRadius="xl"
-              boxShadow="md"
-              border="1px solid"
-              borderColor={borderColor}
-              _hover={{
-                boxShadow: 'xl',
-                transform: 'translateY(-4px)',
-                transition: 'all 0.2s',
-              }}
-            >
-              <CardBody>
-                <VStack spacing={4} align="center">
-                  <Icon as={item.icon} boxSize={12} color={item.color} />
-                  <Text fontWeight="bold" fontSize="lg">
-                    {item.title}
-                  </Text>
-                </VStack>
-              </CardBody>
-            </MotionCard>
-          ))}
-        </SimpleGrid>
+        <Box>
+          <Heading size="lg" mb={6}>
+            Wallet Actions
+          </Heading>
+          <SimpleGrid columns={{ base: 2, md: 3 }} spacing={6}>
+            {[
+              {
+                title: "Withdraw Funds",
+                icon: FaCreditCard,
+                path: "/withdraw",
+                color: "green.500",
+              },
+              {
+                title: "Wallet History",
+                icon: FaExchangeAlt,
+                path: "/history", // or "/transactions" if you prefer
+                color: "blue.500",
+              },
+            ].map((item, index) => (
+              <MotionCard
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                cursor="pointer"
+                onClick={() => navigate(item.path)}
+                bg={cardBg}
+                borderRadius="xl"
+                boxShadow="md"
+                border="1px solid"
+                borderColor={borderColor}
+                _hover={{
+                  boxShadow: "xl",
+                  transform: "translateY(-4px)",
+                  transition: "all 0.2s",
+                }}
+              >
+                <CardBody>
+                  <VStack spacing={4} align="center">
+                    <Icon as={item.icon} boxSize={12} color={item.color} />
+                    <Text fontWeight="bold" fontSize="lg" textAlign="center">
+                      {item.title}
+                    </Text>
+                  </VStack>
+                </CardBody>
+              </MotionCard>
+            ))}
+          </SimpleGrid>
+        </Box>
+
+        {/* Profile & Settings Navigation */}
+        <Box>
+          <Heading size="lg" mb={6}>
+            Profile & Settings
+          </Heading>
+
+          <Card bg={cardBg} borderRadius="xl" boxShadow="md" overflow="hidden">
+            <CardBody p={0}>
+              <VStack spacing={0} divider={<Divider />} align="stretch">
+                {settingsNav.map((item, index) => (
+                  <MotionBox
+                    key={index}
+                    as="button"
+                    p={5}
+                    display="flex"
+                    alignItems="center"
+                    gap={4}
+                    cursor="pointer"
+                    _hover={{ bg: useColorModeValue("gray.50", "gray.700") }}
+                    onClick={item.onClick || (() => navigate(item.path))}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.08 }}
+                  >
+                    <Icon as={item.icon} boxSize={6} color={item.color} />
+                    <Text fontSize="lg" fontWeight="medium">
+                      {item.title}
+                    </Text>
+                    {!item.onClick && <Spacer />}
+                    {!item.onClick && <Icon as={ChevronRightIcon} color="gray.400" />}
+                  </MotionBox>
+                ))}
+              </VStack>
+            </CardBody>
+          </Card>
+        </Box>
 
         {/* Recent Activity (Optional - expand later) */}
         {profile.ledger && profile.ledger.length > 0 && (
