@@ -35,6 +35,14 @@ interface Transaction {
   submittedAt?: string;
 }
 
+interface Withdrawal {
+  id: number;
+  userId: string;
+  amount: number;
+  status: number;
+  requestedAt?: string;
+}
+
 interface Rate {
   id: number;
   giftCardType: string;
@@ -44,6 +52,7 @@ interface Rate {
 
 const AdminDashboard = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [rates, setRates] = useState<Rate[]>([]);
   const [newRate, setNewRate] = useState<{ giftCardType: string; exchangeRate: string }>({
     giftCardType: '',
@@ -51,6 +60,7 @@ const AdminDashboard = () => {
   });
   const [loadingTransactions, setLoadingTransactions] = useState<boolean>(true);
   const [loadingRates, setLoadingRates] = useState<boolean>(true);
+  const [loadingWithdrawals, setLoadingWithdrawals] = useState<boolean>(true);
   const [isSubmittingRate, setIsSubmittingRate] = useState<boolean>(false);
 
   const toast = useToast();
@@ -70,10 +80,17 @@ const AdminDashboard = () => {
       1: 'approved',
       2: 'rejected',
     };
-  
+
+
     const label = map[status] ?? 'unknown';
     return label.charAt(0).toUpperCase() + label.slice(1);
-  };  
+  };
+
+  const WithdrawalStatusMap: Record<number, string> = {
+    0: "Pending",
+    1: "Approved",
+    2: "Rejected",
+  };
 
 
   useEffect(() => {
@@ -124,6 +141,42 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchWithdrawals = async () => {
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please log in as admin',
+        status: 'warning',
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      setLoadingWithdrawals(true);
+      const response = await axios.get<Withdrawal[]>('https://api.cardora.net/api/admin/withdrawals', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setWithdrawals(response.data);
+
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to fetch withdrawals',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+    }
+    finally {
+      setLoadingWithdrawals(false);
+    }
+  };
+
+
   const fetchRates = async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -147,20 +200,88 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleUpdateStatus = async (id: number, status: 'approved' | 'rejected') => {
+  const approveWithdrawal = async (id: number) => {
     const token = localStorage.getItem('token');
+
     if (!token) return;
 
     try {
-      await axios.put(
-        `https://api.cardora.net/api/transactions/${id}`,
-        { status },
+      await axios.post(
+        `https://api.cardora.net/api/admin/withdrawals/${id}/approve`,
+        {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       toast({
         title: 'Success',
-        description: `Transaction ${status}d`,
+        description: 'Withdrawal approved',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      fetchWithdrawals();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to approve withdrawal',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+
+      fetchWithdrawals();
+    }
+  }
+
+  const rejectWithdrawal = async (id: number) => {
+    const token = localStorage.getItem('token');
+
+    if (!token) return;
+
+    try {
+      await axios.post(
+        `https://api.cardora.net/api/admin/withdrawals/${id}/reject`,
+        { reason: 'Insufficient funds' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast({
+        title: 'Success',
+        description: 'Withdrawal rejected',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      fetchWithdrawals();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data || 'Failed to reject withdrawal',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      fetchWithdrawals();
+    }
+  }
+
+  const handleReject = async (id: number) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      await axios.post(
+        `https://api.cardora.net/api/admin/transactions/${id}/reject`,
+        { reason: 'Invalid or used of gift card.' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast({
+        title: 'Success',
+        description: 'Transaction rejected',
         status: 'success',
         duration: 3000,
         isClosable: true,
@@ -168,6 +289,44 @@ const AdminDashboard = () => {
 
       fetchTransactions();
     } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to reject transaction',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      console.log(error.response);
+      console.log(token);
+    }
+  }
+
+  const handleApprove = async (id: number) => {
+    const token = localStorage.getItem('token');
+    console.log(token);
+
+    if (!token) return;
+
+    try {
+      const res = await axios.post(
+        `https://api.cardora.net/api/admin/transactions/${id}/approve`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+
+      toast({
+        title: 'Success',
+        description: `Transaction approved`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      fetchTransactions();
+    } catch (error: any) {
+      console.log('Error approving: ', error.response);
+
       toast({
         title: 'Error',
         description: error.response?.data?.message || 'Failed to update transaction',
@@ -321,7 +480,7 @@ const AdminDashboard = () => {
                             size="sm"
                             bg={approvedBg}
                             color={buttonColor}
-                            onClick={() => handleUpdateStatus(t.id, 'approved')}
+                            onClick={() => handleApprove(t.id)}
                             isDisabled={t.status === 1}
                             _hover={{ bg: useColorModeValue('green.600', 'green.400') }}
                           >
@@ -331,7 +490,7 @@ const AdminDashboard = () => {
                             size="sm"
                             bg={rejectedBg}
                             color={buttonColor}
-                            onClick={() => handleUpdateStatus(t.id, 'rejected')}
+                            onClick={() => handleReject(t.id)}
                             isDisabled={t.status === 2}
                             _hover={{ bg: useColorModeValue('red.600', 'red.400') }}
                           >
@@ -345,6 +504,52 @@ const AdminDashboard = () => {
               </Table>
             </MotionBox>
           )}
+        </MotionBox>
+
+        {/* Withdrawals Section */}
+        <MotionBox w="full">
+          <Heading size="lg" mb={6}>
+            Withdrawals
+          </Heading>
+
+          {loadingWithdrawals ? (
+            <Center py={10}>
+              <Spinner size="xl" />
+            </Center>
+          ) : (
+
+            withdrawals.map(w => (
+              <Tr key={w.id}>
+                <Td>{w.user.fullName}</Td>
+                <Td>₦{w.amount.toLocaleString()}</Td>
+                <Td>{w.bank.bankName}</Td>
+                <Td>{WithdrawalStatusMap[w.status]}</Td>
+                <Td>
+                  {w.status === 0 && (
+                    <HStack>
+                      <Button
+                        size="sm"
+                        colorScheme="green"
+                        isDisabled={w.status !== 0}
+                        onClick={() => approveWithdrawal(w.id)}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        colorScheme="red"
+                        isDisabled={w.status !== 0}
+                        onClick={() => rejectWithdrawal(w.id)}
+                      >
+                        Reject
+                      </Button>
+                    </HStack>
+                  )}
+                </Td>
+              </Tr>
+            ))
+          )}
+
         </MotionBox>
 
         {/* Rates Management Section */}

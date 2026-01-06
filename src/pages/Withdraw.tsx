@@ -132,7 +132,7 @@ const Withdraw = () => {
       });
 
       setAmount('');
-      navigate('/withdrawals'); 
+      navigate('/history'); 
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Failed to submit withdrawal';
       toast({ title: 'Error', description: msg, status: 'error' });

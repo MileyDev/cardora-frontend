@@ -1,4 +1,3 @@
-// src/pages/Submit.tsx
 import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import {
   Box,
@@ -131,6 +130,8 @@ const Submit = () => {
     return usdValue * rateObj.exchangeRate;
   };
 
+  const estimated = getEstimatedNgn();
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
@@ -144,13 +145,24 @@ const Submit = () => {
       return;
     }
 
+    if (!estimated || estimated <= 0) {
+      toast({
+        title: 'Cannot submit',
+        description: 'Unable to calculate NGN estimate',
+        status: 'error',
+      });
+      return;
+    }    
+
     setIsSubmitting(true);
     const token = localStorage.getItem('token');
+    console.log('nairaEst:', estimated);
 
     try {
       const formData = new FormData();
       formData.append('giftCardType', giftCardType);
       formData.append('value', value);
+      formData.append('nairaEst', estimated.toString());
 
       images.forEach(file => {
         formData.append('images', file);
@@ -176,7 +188,7 @@ const Submit = () => {
       setImages([]);
       setImagePreviews([]);
 
-      navigate('/profile');
+      navigate('/my-profile');
     } catch (err: any) {
       toast({
         title: 'Submission Failed',
@@ -190,10 +202,10 @@ const Submit = () => {
     }
   };
 
-  const estimated = getEstimatedNgn();
+  
 
   return (
-    <MotionBox initial={{ opacity: 0, y: 40 }} w="100vw" animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+    <MotionBox initial={{ opacity: 0, y: 40 }} w="100vw" minH="100vh" animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
       <Box p={{ base: 6, md: 8 }} maxW="container.lg" mx="auto">
         <Heading mb={8} textAlign="center">
           Submit Gift Card

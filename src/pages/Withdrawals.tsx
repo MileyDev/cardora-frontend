@@ -33,7 +33,7 @@ const MotionCard = motion.create(Card);
 interface Withdrawal {
   id: string;
   amount: number;
-  status: string; // e.g. "Pending", "Approved", "Rejected", "Completed"
+  status: number; // e.g. "Pending", "Approved", "Rejected", "Completed"
   bank: {
     bankName: string;
     accountNumber: string;
@@ -56,6 +56,17 @@ const Withdrawals = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const formatTransactionStatus = (status: number) => {
+    const map: Record<number, string> = {
+      0: 'pending',
+      1: 'approved',
+      2: 'rejected',
+    };
+  
+    const label = map[status] ?? 'unknown';
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  };  
 
   const pageSize = 10;
   const toast = useToast();
@@ -106,12 +117,11 @@ const Withdrawals = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed': return 'green';
-      case 'approved': return 'blue';
-      case 'rejected': return 'red';
-      case 'pending':
+  const getStatusColor = (status: number) => {
+    switch (status) {
+      case 0: return 'yellow';
+      case 1: return 'blue';
+      case 2: return 'red';
       default: return 'yellow';
     }
   };
@@ -179,7 +189,7 @@ const Withdrawals = () => {
                       </Td>
                       <Td>
                         <Badge colorScheme={getStatusColor(wd.status)} px={3} py={1}>
-                          {wd.status}
+                          {formatTransactionStatus(wd.status)}
                         </Badge>
                       </Td>
                       <Td>
