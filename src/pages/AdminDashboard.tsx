@@ -31,7 +31,7 @@ interface Transaction {
   userId: string;
   giftCardType: string;
   value: number;
-  status: string;
+  status: number;
   submittedAt?: string;
 }
 
@@ -64,6 +64,18 @@ const AdminDashboard = () => {
   const tableBorder = useColorModeValue('gray.200', 'gray.700');
   const tableHeadBg = useColorModeValue('gray.50', 'gray.700');
 
+  const formatTransactionStatus = (status: number) => {
+    const map: Record<number, string> = {
+      0: 'pending',
+      1: 'approved',
+      2: 'rejected',
+    };
+  
+    const label = map[status] ?? 'unknown';
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  };  
+
+
   useEffect(() => {
     fetchTransactions();
     fetchRates();
@@ -94,7 +106,7 @@ const AdminDashboard = () => {
         error.response?.data?.message ||
         (error.response?.status === 401 ? 'Session expired. Please log in again.' : 'Failed to fetch transactions');
 
-        console.log('Fetch transactions error:', error.response);
+      console.log('Fetch transactions error:', error.response);
       toast({
         title: 'Error',
         description: message,
@@ -229,10 +241,10 @@ const AdminDashboard = () => {
     <MotionBox initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.6 }} 
-      p={{ base: 4, md: 8 }} 
-      maxW="100vw" 
-      minW="100vw" 
+      transition={{ duration: 0.6 }}
+      p={{ base: 4, md: 8 }}
+      maxW="100vw"
+      minW="100vw"
       mx="auto">
       <Heading mb={8} size="2xl" textAlign="center">
         Admin Dashboard
@@ -293,14 +305,14 @@ const AdminDashboard = () => {
                         <Text
                           fontWeight="bold"
                           color={
-                            t.status === 'approved'
+                            t.status === 1
                               ? 'green.500'
-                              : t.status === 'rejected'
+                              : t.status === 2
                                 ? 'red.500'
                                 : 'yellow.600'
                           }
                         >
-                          {t.status.charAt(0).toUpperCase() + t.status.slice(1)}
+                          {formatTransactionStatus(t.status)}
                         </Text>
                       </Td>
                       <Td>
@@ -310,7 +322,7 @@ const AdminDashboard = () => {
                             bg={approvedBg}
                             color={buttonColor}
                             onClick={() => handleUpdateStatus(t.id, 'approved')}
-                            isDisabled={t.status === 'approved'}
+                            isDisabled={t.status === 1}
                             _hover={{ bg: useColorModeValue('green.600', 'green.400') }}
                           >
                             Approve
@@ -320,7 +332,7 @@ const AdminDashboard = () => {
                             bg={rejectedBg}
                             color={buttonColor}
                             onClick={() => handleUpdateStatus(t.id, 'rejected')}
-                            isDisabled={t.status === 'rejected'}
+                            isDisabled={t.status === 2}
                             _hover={{ bg: useColorModeValue('red.600', 'red.400') }}
                           >
                             Reject
