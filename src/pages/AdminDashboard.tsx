@@ -84,7 +84,7 @@ const AdminDashboard = () => {
 
     try {
       setLoadingTransactions(true);
-      const response = await axios.get<Transaction[]>('https://api.cardora.net/api/transactions', {
+      const response = await axios.get<Transaction[]>('https://api.cardora.net/api/admin/transactions', {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log('Fetched transactions:', response.data);
@@ -94,6 +94,7 @@ const AdminDashboard = () => {
         error.response?.data?.message ||
         (error.response?.status === 401 ? 'Session expired. Please log in again.' : 'Failed to fetch transactions');
 
+        console.log('Fetch transactions error:', error.response);
       toast({
         title: 'Error',
         description: message,
