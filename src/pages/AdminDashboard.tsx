@@ -309,7 +309,7 @@ const AdminDashboard = () => {
     if (!token) return;
 
     try {
-      const res = await axios.post(
+       await axios.post(
         `https://api.cardora.net/api/admin/transactions/${id}/approve`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
