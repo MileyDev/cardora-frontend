@@ -35,13 +35,26 @@ interface Transaction {
   submittedAt?: string;
 }
 
-interface Withdrawal {
-  id: number;
-  userId: string;
+export interface Withdrawal {
+  id: string;
   amount: number;
   status: number;
-  requestedAt?: string;
+  requestedAt: string;
+
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  };
+
+  bank: {
+    bankName: string;
+    accountNumber: string;
+    accountName: string;
+  };
 }
+
 
 interface Rate {
   id: number;
@@ -95,6 +108,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchTransactions();
+    fetchWithdrawals();
     fetchRates();
   }, []);
 
@@ -149,7 +163,7 @@ const AdminDashboard = () => {
         title: 'Authentication required',
         description: 'Please log in as admin',
         status: 'warning',
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
       });
       return;
@@ -157,11 +171,14 @@ const AdminDashboard = () => {
 
     try {
       setLoadingWithdrawals(true);
-      const response = await axios.get<Withdrawal[]>('https://api.cardora.net/api/admin/withdrawals', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setWithdrawals(response.data);
 
+      const { data } = await axios.get<Withdrawal[]>(
+        'https://api.cardora.net/api/admin/withdrawals',
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setWithdrawals(data);
+      console.log(data);
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -169,13 +186,11 @@ const AdminDashboard = () => {
         status: 'error',
         duration: 3000,
         isClosable: true,
-      })
-    }
-    finally {
+      });
+    } finally {
       setLoadingWithdrawals(false);
     }
   };
-
 
   const fetchRates = async () => {
     const token = localStorage.getItem('token');
@@ -200,7 +215,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const approveWithdrawal = async (id: number) => {
+  const approveWithdrawal = async (id: string) => {
     const token = localStorage.getItem('token');
 
     if (!token) return;
@@ -234,7 +249,7 @@ const AdminDashboard = () => {
     }
   }
 
-  const rejectWithdrawal = async (id: number) => {
+  const rejectWithdrawal = async (id: string) => {
     const token = localStorage.getItem('token');
 
     if (!token) return;
@@ -309,7 +324,7 @@ const AdminDashboard = () => {
     if (!token) return;
 
     try {
-       await axios.post(
+      await axios.post(
         `https://api.cardora.net/api/admin/transactions/${id}/approve`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
@@ -507,6 +522,7 @@ const AdminDashboard = () => {
         </MotionBox>
 
         {/* Withdrawals Section */}
+        {/* Withdrawals Section */}
         <MotionBox w="full">
           <Heading size="lg" mb={6}>
             Withdrawals
@@ -514,43 +530,95 @@ const AdminDashboard = () => {
 
           {loadingWithdrawals ? (
             <Center py={10}>
-              <Spinner size="xl" />
+              <VStack spacing={4}>
+                <Spinner size="xl" />
+                <Text>Loading withdrawals...</Text>
+              </VStack>
+            </Center>
+          ) : withdrawals.length === 0 ? (
+            <Center py={10}>
+              <Text color="gray.500">No withdrawals found</Text>
             </Center>
           ) : (
+            <MotionBox
+              overflowX="auto"
+              bg={tableBg}
+              borderRadius="lg"
+              border="1px solid"
+              borderColor={tableBorder}
+              boxShadow="md"
+            >
+              <Table variant="simple">
+                <Thead bg={tableHeadBg}>
+                  <Tr>
+                    <Th>User</Th>
+                    <Th>Amount</Th>
+                    <Th>Bank</Th>
+                    <Th>Account No</Th>
+                    <Th>Account Name</Th>
+                    <Th>Status</Th>
+                    <Th>Actions</Th>
+                  </Tr>
+                </Thead>
 
-            withdrawals.map(w => (
-              <Tr key={w.id}>
-                <Td>{w.user.fullName}</Td>
-                <Td>₦{w.amount.toLocaleString()}</Td>
-                <Td>{w.bank.bankName}</Td>
-                <Td>{WithdrawalStatusMap[w.status]}</Td>
-                <Td>
-                  {w.status === 0 && (
-                    <HStack>
-                      <Button
-                        size="sm"
-                        colorScheme="green"
-                        isDisabled={w.status !== 0}
-                        onClick={() => approveWithdrawal(w.id)}
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        colorScheme="red"
-                        isDisabled={w.status !== 0}
-                        onClick={() => rejectWithdrawal(w.id)}
-                      >
-                        Reject
-                      </Button>
-                    </HStack>
-                  )}
-                </Td>
-              </Tr>
-            ))
+                <Tbody>
+                  {withdrawals.map((w) => (
+                    <Tr key={w.id}>
+                      <Td>
+                        {w.user.firstName} {w.user.lastName}
+                      </Td>
+
+                      <Td fontWeight="bold">
+                        ₦{w.amount.toLocaleString()}
+                      </Td>
+
+                      <Td>{w.bank.bankName}</Td>
+                      <Td>{w.bank.accountNumber}</Td>
+                      <Td>{w.bank.accountName}</Td>
+
+                      <Td>
+                        <Text
+                          fontWeight="bold"
+                          color={
+                            w.status === 1
+                              ? 'green.500'
+                              : w.status === 2
+                                ? 'red.500'
+                                : 'yellow.600'
+                          }
+                        >
+                          {WithdrawalStatusMap[w.status]}
+                        </Text>
+                      </Td>
+
+                      <Td>
+                        {w.status === 0 && (
+                          <HStack>
+                            <Button
+                              size="sm"
+                              colorScheme="green"
+                              onClick={() => approveWithdrawal(w.id)}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              colorScheme="red"
+                              onClick={() => rejectWithdrawal(w.id)}
+                            >
+                              Reject
+                            </Button>
+                          </HStack>
+                        )}
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </MotionBox>
           )}
-
         </MotionBox>
+
 
         {/* Rates Management Section */}
         <MotionBox w="full">

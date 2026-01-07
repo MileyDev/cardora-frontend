@@ -269,7 +269,7 @@ const BankDetails = () => {
   }
 
   return (
-    <Box p={{ base: 4, md: 8 }} minH="100vh">
+    <Box p={{ base: 4, md: 8 }} minH="100vh" maxW="100vw">
       <Heading mb={8} textAlign="center">
         Bank Accounts
       </Heading>

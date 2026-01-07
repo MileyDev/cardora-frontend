@@ -24,13 +24,20 @@ import { motion } from 'framer-motion';
 const MotionBox = motion.create(Box);
 
 interface Transaction {
-    id: number;
+    id: string;
     giftCardType: string;
     value: number;
-    status: string;
+    status: number;       // 0 | 1 | 2
     submittedAt: string;
-    // Add any other fields your backend returns (bankDetails, imageUrls, etc.)
 }
+
+
+const TransactionStatusMap: Record<number, { label: string; color: string }> = {
+    0: { label: 'Pending', color: 'yellow.500' },
+    1: { label: 'Approved', color: 'green.500' },
+    2: { label: 'Rejected', color: 'red.500' },
+};
+
 
 const Transactions = () => {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -39,6 +46,9 @@ const Transactions = () => {
 
     const toast = useToast();
     const navigate = useNavigate();
+
+    
+
 
     const tableBg = useColorModeValue('white', 'gray.800');
     const tableBorder = useColorModeValue('gray.200', 'gray.700');
@@ -71,6 +81,7 @@ const Transactions = () => {
                         },
                     }
                 );
+                console.log('Transactions: ', response.data);
 
                 setTransactions(response.data);
             } catch (err: any) {
@@ -142,9 +153,9 @@ const Transactions = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            minW="100vw" 
-            p={{ base: 4, md: 8 }} 
-            maxW="100vw" 
+            minW="100vw"
+            p={{ base: 4, md: 8 }}
+            maxW="100vw"
             mx="auto">
             <Heading mb={6} size="xl" textAlign="center">
                 My Transactions
@@ -185,33 +196,35 @@ const Transactions = () => {
                             </Tr>
                         </Thead>
                         <Tbody>
-                            {transactions.map((t) => (
-                                <Tr key={t.id}>
-                                    <Td fontWeight="medium">{t.giftCardType}</Td>
-                                    <Td isNumeric>${t.value.toFixed(2)}</Td>
-                                    <Td>
-                                        <Text
-                                            color={
-                                                t.status === 'approved'
-                                                    ? 'green.500'
-                                                    : t.status === 'rejected'
-                                                        ? 'red.500'
-                                                        : 'yellow.500'
-                                            }
-                                            fontWeight="medium"
-                                        >
-                                            {t.status.charAt(0).toUpperCase() + t.status.slice(1)}
-                                        </Text>
-                                    </Td>
-                                    <Td>
-                                        {new Date(t.submittedAt).toLocaleString('en-NG', {
-                                            dateStyle: 'medium',
-                                            timeStyle: 'short',
-                                        })}
-                                    </Td>
-                                </Tr>
-                            ))}
+                            {transactions.map((t) => {
+                                const status = TransactionStatusMap[t.status] ?? {
+                                    label: 'Unknown',
+                                    color: 'gray.500',
+                                };
+
+                                return (
+                                    <Tr key={t.id}>
+                                        <Td fontWeight="medium">{t.giftCardType}</Td>
+
+                                        <Td isNumeric>${t.value.toFixed(2)}</Td>
+
+                                        <Td>
+                                            <Text fontWeight="medium" color={status.color}>
+                                                {status.label}
+                                            </Text>
+                                        </Td>
+
+                                        <Td>
+                                            {new Date(t.submittedAt).toLocaleString('en-NG', {
+                                                dateStyle: 'medium',
+                                                timeStyle: 'short',
+                                            })}
+                                        </Td>
+                                    </Tr>
+                                );
+                            })}
                         </Tbody>
+
                     </Table>
                 </Box>
             )}
