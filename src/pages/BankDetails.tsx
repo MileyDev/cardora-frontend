@@ -30,7 +30,6 @@ import {
   HStack,
   useColorModeValue,
   Select,
-  FormHelperText,
   Badge,
 } from '@chakra-ui/react';
 import { DeleteIcon, AddIcon } from '@chakra-ui/icons';
