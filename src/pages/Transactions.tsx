@@ -27,7 +27,7 @@ interface Transaction {
     id: string;
     giftCardType: string;
     value: number;
-    status: number;       // 0 | 1 | 2
+    status: number;       
     submittedAt: string;
 }
 

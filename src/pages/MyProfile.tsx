@@ -1,4 +1,3 @@
-// src/pages/MyProfile.tsx
 import { useState, useEffect } from 'react';
 import {
   Box,
@@ -30,6 +29,7 @@ import axios from 'axios';
 import { FaWallet, FaExchangeAlt, FaUserCircle, FaSignOutAlt, FaCreditCard, FaLock, FaHeadset } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { ChevronRightIcon } from '@chakra-ui/icons';
+import { requestPushPermission } from '../pwa/push';
 
 const MotionCard = motion.create(Card);
 const MotionBox = motion.create(Box);
@@ -151,6 +151,20 @@ const MyProfile = () => {
     });
     navigate('/login');
   };
+
+  const allowPush = async () => {
+    const token = localStorage.getItem('token');
+
+    const sub = await requestPushPermission();
+
+    if (sub) {
+      await axios.post(
+        "https://api.cardora.net/api/push/subscribe",
+        { subscriptionJson: sub },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    }
+  }
 
   const settingsNav = [
     {
@@ -392,6 +406,18 @@ const MyProfile = () => {
                   </MotionBox>
                 ))}
               </VStack>
+
+
+              <Button
+                mt={4}
+                colorScheme="blue"
+                onClick={async () => allowPush()}
+                w="70%"
+                textAlign="center"
+              >
+                Enable Notifications
+              </Button>
+
             </CardBody>
           </Card>
         </Box>
