@@ -412,7 +412,7 @@ const MyProfile = () => {
                 mt={4}
                 colorScheme="blue"
                 onClick={async () => allowPush()}
-                w="70%"
+                w="full"
                 textAlign="center"
               >
                 Enable Notifications

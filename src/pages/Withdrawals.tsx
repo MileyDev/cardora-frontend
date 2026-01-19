@@ -171,7 +171,7 @@ const Withdrawals = () => {
             </Center>
           ) : (
             <>
-              <Table variant="simple" size={{ base: 'md', md: 'lg' }}>
+              <Table variant="striped">
                 <Thead>
                   <Tr>
                     <Th>Amount</Th>
