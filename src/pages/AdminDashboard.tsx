@@ -21,6 +21,7 @@ import {
   HStack,
   useColorModeValue,
 } from '@chakra-ui/react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 
@@ -77,6 +78,7 @@ const AdminDashboard = () => {
   const [isSubmittingRate, setIsSubmittingRate] = useState<boolean>(false);
 
   const toast = useToast();
+  const navigate = useNavigate();
 
   // All dynamic colors at the very top (no conditionals before hooks)
   const submitBg = useColorModeValue('blue.500', 'blue.300');
@@ -119,7 +121,7 @@ const AdminDashboard = () => {
         title: 'Authentication required',
         description: 'Please log in as admin',
         status: 'warning',
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
       });
       return;
@@ -142,13 +144,13 @@ const AdminDashboard = () => {
         title: 'Error',
         description: message,
         status: 'error',
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
       });
 
       if (error.response?.status === 401) {
         localStorage.removeItem('token');
-        // Optional: navigate('/login');
+        navigate('/login');
       }
     } finally {
       setLoadingTransactions(false);
@@ -207,7 +209,7 @@ const AdminDashboard = () => {
         title: 'Error',
         description: error.response?.data?.message || 'Failed to fetch rates',
         status: 'error',
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
       });
     } finally {
@@ -241,7 +243,7 @@ const AdminDashboard = () => {
         title: 'Error',
         description: error.response?.data?.message || 'Failed to approve withdrawal',
         status: 'error',
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
       });
 
@@ -346,7 +348,7 @@ const AdminDashboard = () => {
         title: 'Error',
         description: error.response?.data?.message || 'Failed to update transaction',
         status: 'error',
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
       });
     }
@@ -371,7 +373,7 @@ const AdminDashboard = () => {
         title: 'Invalid input',
         description: 'Please select a gift card type and enter a valid rate',
         status: 'warning',
-        duration: 4000,
+        duration: 3000,
       });
       return;
     }
@@ -392,7 +394,7 @@ const AdminDashboard = () => {
         title: 'Success',
         description: `Rate for ${newRate.giftCardType} updated`,
         status: 'success',
-        duration: 4000,
+        duration: 3000,
         isClosable: true,
       });
 
@@ -403,7 +405,7 @@ const AdminDashboard = () => {
         title: 'Error',
         description: error.response?.data?.message || 'Failed to update rate',
         status: 'error',
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
       });
     } finally {

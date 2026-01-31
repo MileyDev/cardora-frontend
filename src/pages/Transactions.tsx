@@ -121,7 +121,7 @@ const Transactions = () => {
 
     if (loading) {
         return (
-            <Center minH="80vh">
+            <Center minH="100vh">
                 <VStack spacing={4}>
                     <Spinner size="xl" thickness="4px" color="blue.500" />
                     <Text>Loading your transactions...</Text>
@@ -132,7 +132,7 @@ const Transactions = () => {
 
     if (error) {
         return (
-            <Center minH="80vh">
+            <Center minH="100vh">
                 <VStack spacing={4}>
                     <Text color="red.500" fontSize="xl" fontWeight="bold">
                         Oops!
@@ -154,6 +154,7 @@ const Transactions = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
             minW="100vw"
+            minH="100vh"
             p={{ base: 4, md: 8 }}
             maxW="100vw"
             mx="auto">
