@@ -330,8 +330,11 @@ const BankDetails = () => {
                   <FormLabel>Account Name</FormLabel>
                   <Input
                     value={newBank.accountName}
-                    isReadOnly
-                    placeholder="Fetched automatically"
+                    placeholder="Please input your account name"
+                    onChange={(e) => setNewBank(prev => ({
+                      ...prev,
+                      accountName: e.target.value.toUpperCase(),
+                    }))}
                   />
                   {resolvingName && <Spinner size="sm" mt={2} />}
                   {newBank.accountName && (
