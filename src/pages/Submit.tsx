@@ -104,14 +104,22 @@ const Submit = () => {
   }, [toast]);
 
   const handleImagesChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+    const files = Array.from(e.currentTarget.files || []);
     if (files.length + images.length > 5) {
       toast({ title: 'Maximum 5 images allowed', status: 'warning' });
       return;
     }
 
 
-    const validImages = files.filter((f) => f.type.startsWith('image/'));
+    const isImageFile = (f: File) => {
+      if (f.type?.startsWith('image/')) return true;
+    
+      const name = f.name?.toLowerCase() ?? '';
+      return /\.(png|jpe?g|gif|webp|heic|heif)$/i.test(name);
+    };
+    
+    const validImages = files.filter(isImageFile);
+    
     if (validImages.length === 0) return;
 
     const newPreviews = validImages.map((file) => URL.createObjectURL(file));
@@ -179,13 +187,12 @@ const Submit = () => {
       formData.append('nairaEst', estimated.toString());
 
       images.forEach(file => {
-        formData.append('images', file);
+        formData.append('images', file, file.name);
       });
 
       await axios.post('https://api.cardora.net/api/transactions', formData, {
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
         },
       });
 
@@ -303,6 +310,7 @@ const Submit = () => {
                   multiple
                   onChange={handleImagesChange}
                   isDisabled={isSubmitting}
+                  required={images.length === 0}
                 />
                 <FormHelperText>
                   Upload clear photos of the gift card front, back, and code/receipt.
