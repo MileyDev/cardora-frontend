@@ -19,7 +19,11 @@ import {
   AlertIcon,
   Skeleton,
   Input,
+  IconButton,
+  Wrap,
+  WrapItem,
 } from '@chakra-ui/react';
+import { CloseIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'framer-motion';
@@ -47,6 +51,13 @@ const Submit = () => {
   const navigate = useNavigate();
 
   const accentColor = useColorModeValue('green.600', 'green.400');
+
+  useEffect(() => {
+    return () => {
+      imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [imagePreviews]);
+  
 
   // Fetch live rates from backend
   useEffect(() => {
@@ -99,24 +110,27 @@ const Submit = () => {
       return;
     }
 
-    const newPreviews: string[] = [];
-    files.forEach(file => {
-      if (!file.type.startsWith('image/')) return;
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') newPreviews.push(reader.result);
-      };
-      reader.readAsDataURL(file);
-    });
 
-    setImages(prev => [...prev, ...files.filter(f => f.type.startsWith('image/'))]);
-    setImagePreviews(prev => [...prev, ...newPreviews]);
+    const validImages = files.filter((f) => f.type.startsWith('image/'));
+    if (validImages.length === 0) return;
+
+    const newPreviews = validImages.map((file) => URL.createObjectURL(file));
+
+    setImages((prev) => [...prev, ...validImages]);
+    setImagePreviews((prev) => [...prev, ...newPreviews]);
+
+    e.target.value = '';
   };
 
   const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
-    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => {
+      const removed = prev[index];
+      if (removed) URL.revokeObjectURL(removed);
+      return prev.filter((_, i) => i !== index);
+    });
   };
+
 
   const getEstimatedNgn = (): number | null => {
     if (!value || !giftCardType || rates.length === 0) return null;
@@ -152,7 +166,7 @@ const Submit = () => {
         status: 'error',
       });
       return;
-    }    
+    }
 
     setIsSubmitting(true);
     const token = localStorage.getItem('token');
@@ -202,7 +216,7 @@ const Submit = () => {
     }
   };
 
-  
+
 
   return (
     <MotionBox initial={{ opacity: 0, y: 40 }} w="100vw" minH="100vh" animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
@@ -297,33 +311,37 @@ const Submit = () => {
 
               {/* Image Previews */}
               {imagePreviews.length > 0 && (
-                <HStack spacing={4} wrap="wrap" mt={4}>
-                  {imagePreviews.map((preview, idx) => (
-                    <Box key={idx} position="relative">
-                      <Image
-                        src={preview}
-                        alt={`preview ${idx + 1}`}
-                        boxSize="120px"
-                        objectFit="cover"
-                        borderRadius="md"
-                        border="2px solid"
-                        borderColor="gray.200"
-                      />
-                      <Button
-                        size="xs"
-                        colorScheme="red"
-                        position="absolute"
-                        top="-2"
-                        right="-2"
-                        borderRadius="full"
-                        onClick={() => removeImage(idx)}
-                        isDisabled={isSubmitting}
-                      >
-                        ×
-                      </Button>
-                    </Box>
+                <Wrap spacing="14px" pt={2}>
+                  {imagePreviews.map((src, idx) => (
+                    <WrapItem key={src}>
+                      <Box position="relative">
+                        <Image
+                          src={src}
+                          alt={`proof ${idx + 1}`}
+                          boxSize="120px"
+                          objectFit="cover"
+                          borderRadius="md"
+                          border="1px solid"
+                          borderColor="gray.200"
+                        />
+
+                        <IconButton
+                          aria-label="Remove image"
+                          icon={<CloseIcon />}
+                          size="xs"
+                          colorScheme="red"
+                          variant="solid"
+                          position="absolute"
+                          top="6px"
+                          right="6px"
+                          borderRadius="full"
+                          onClick={() => removeImage(idx)}
+                          isDisabled={isSubmitting}
+                        />
+                      </Box>
+                    </WrapItem>
                   ))}
-                </HStack>
+                </Wrap>
               )}
 
               <Button
