@@ -1,4 +1,4 @@
-import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
+import { useState, useEffect, type ChangeEvent, type FormEvent, useMemo } from 'react';
 import {
   Box,
   Heading,
@@ -30,15 +30,21 @@ import { motion } from 'framer-motion';
 
 const MotionBox = motion.create(Box);
 
+type Currency = 'USD' | 'CAD' | 'GBP' | 'EUR';
+
 interface Rate {
   giftCardType: string;
-  exchangeRate: number; // NGN per unit (usually per $1)
-  currency?: string; // e.g. "USD" – optional
-  updatedAt?: string; // optional
+  ratePerUnit?: number;      // new backend field
+  exchangeRate?: number;     // legacy field (fallback)
+  currency?: Currency | string;
+  updatedAt?: string;
 }
+
+const currencyOptions: Currency[] = ['USD', 'CAD', 'GBP', 'EUR'];
 
 const Submit = () => {
   const [giftCardType, setGiftCardType] = useState<string>('');
+  const [currency, setCurrency] = useState<Currency>('USD');
   const [value, setValue] = useState<string>('');
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -57,7 +63,6 @@ const Submit = () => {
       imagePreviews.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [imagePreviews]);
-  
 
   // Fetch live rates from backend
   useEffect(() => {
@@ -70,7 +75,6 @@ const Submit = () => {
         const response = await axios.get<Rate[]>('https://api.cardora.net/api/rates', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         });
-        console.log('Fetched rates:', response.data);
 
         if (response.data && Array.isArray(response.data) && response.data.length > 0) {
           setRates(response.data);
@@ -80,20 +84,20 @@ const Submit = () => {
       } catch (err: any) {
         const message = err.response?.data?.message || 'Failed to load current rates';
         setRatesError(message);
-        console.log(message);
+
         toast({
           title: 'Rates Unavailable',
           description: `${message}. Using fallback rates.`,
           status: 'warning',
           duration: 6000,
         });
-        // Optional fallback rates
+
+        // Fallback rates (USD only by default; you can expand)
         setRates([
-          { giftCardType: 'Amazon', exchangeRate: 1450 },
-          { giftCardType: 'iTunes', exchangeRate: 1380 },
-          { giftCardType: 'Google Play', exchangeRate: 1320 },
-          { giftCardType: 'Steam', exchangeRate: 1500 },
-          // ... more fallback if needed
+          { giftCardType: 'Amazon', exchangeRate: 1450, currency: 'USD' },
+          { giftCardType: 'iTunes', exchangeRate: 1380, currency: 'USD' },
+          { giftCardType: 'Google Play', exchangeRate: 1320, currency: 'USD' },
+          { giftCardType: 'Steam', exchangeRate: 1500, currency: 'USD' },
         ]);
       } finally {
         setLoadingRates(false);
@@ -103,6 +107,15 @@ const Submit = () => {
     fetchRates();
   }, [toast]);
 
+  // GiftCard options should be unique (regardless of currency)
+  const giftCardOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of rates) {
+      if (r?.giftCardType) set.add(r.giftCardType);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [rates]);
+
   const handleImagesChange = (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.currentTarget.files || []);
     if (files.length + images.length > 5) {
@@ -110,16 +123,13 @@ const Submit = () => {
       return;
     }
 
-
     const isImageFile = (f: File) => {
       if (f.type?.startsWith('image/')) return true;
-    
       const name = f.name?.toLowerCase() ?? '';
       return /\.(png|jpe?g|gif|webp|heic|heif)$/i.test(name);
     };
-    
+
     const validImages = files.filter(isImageFile);
-    
     if (validImages.length === 0) return;
 
     const newPreviews = validImages.map((file) => URL.createObjectURL(file));
@@ -139,17 +149,24 @@ const Submit = () => {
     });
   };
 
-
   const getEstimatedNgn = (): number | null => {
-    if (!value || !giftCardType || rates.length === 0) return null;
+    if (!value || !giftCardType || rates.length === 0 || !currency) return null;
 
-    const usdValue = parseFloat(value);
-    if (isNaN(usdValue) || usdValue <= 0) return null;
+    const unitValue = parseFloat(value);
+    if (isNaN(unitValue) || unitValue <= 0) return null;
 
-    const rateObj = rates.find(r => r.giftCardType === giftCardType);
+    const rateObj = rates.find(
+      (r) =>
+        r.giftCardType === giftCardType &&
+        String(r.currency || '').toUpperCase() === currency
+    );
+
     if (!rateObj) return null;
 
-    return usdValue * rateObj.exchangeRate;
+    const ratePerUnit = rateObj.ratePerUnit ?? rateObj.exchangeRate ?? 0;
+    if (!ratePerUnit || ratePerUnit <= 0) return null;
+
+    return unitValue * ratePerUnit;
   };
 
   const estimated = getEstimatedNgn();
@@ -157,7 +174,7 @@ const Submit = () => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    if (!giftCardType || !value || parseFloat(value) <= 0 || images.length === 0) {
+    if (!giftCardType || !currency || !value || parseFloat(value) <= 0 || images.length === 0) {
       toast({ title: 'Please complete all required fields', status: 'warning' });
       return;
     }
@@ -170,7 +187,7 @@ const Submit = () => {
     if (!estimated || estimated <= 0) {
       toast({
         title: 'Cannot submit',
-        description: 'Unable to calculate NGN estimate',
+        description: `No rate found for ${giftCardType} (${currency}). Ask admin to set it.`,
         status: 'error',
       });
       return;
@@ -178,15 +195,15 @@ const Submit = () => {
 
     setIsSubmitting(true);
     const token = localStorage.getItem('token');
-    console.log('nairaEst:', estimated);
 
     try {
       const formData = new FormData();
       formData.append('giftCardType', giftCardType);
+      formData.append('currency', currency); // ✅ REQUIRED by new backend
       formData.append('value', value);
       formData.append('nairaEst', estimated.toString());
 
-      images.forEach(file => {
+      images.forEach((file) => {
         formData.append('images', file, file.name);
       });
 
@@ -198,13 +215,13 @@ const Submit = () => {
 
       toast({
         title: 'Submitted Successfully',
-        description: 'Gift card received. Well review and credit your wallet in NGN soon.',
+        description: 'Gift card received. We’ll review and credit your wallet in NGN soon.',
         status: 'success',
         duration: 7000,
       });
 
-      // Reset form
       setGiftCardType('');
+      setCurrency('USD');
       setValue('');
       setImages([]);
       setImagePreviews([]);
@@ -217,16 +234,21 @@ const Submit = () => {
         status: 'error',
         duration: 6000,
       });
+      // eslint-disable-next-line no-console
       console.log('Submission error:', err);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-
-
   return (
-    <MotionBox initial={{ opacity: 0, y: 40 }} w="100vw" minH="100vh" animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+    <MotionBox
+      initial={{ opacity: 0, y: 40 }}
+      w="100vw"
+      minH="100vh"
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+    >
       <Box p={{ base: 6, md: 8 }} maxW="container.lg" mx="auto">
         <Heading mb={8} textAlign="center">
           Submit Gift Card
@@ -254,17 +276,36 @@ const Submit = () => {
                   onChange={(e) => setGiftCardType(e.target.value)}
                   isDisabled={isSubmitting}
                 >
-                  {rates.map(rate => (
-                    <option key={rate.giftCardType} value={rate.giftCardType}>
-                      {rate.giftCardType}
+                  {giftCardOptions.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
                     </option>
                   ))}
                 </Select>
               </FormControl>
 
+              {/* Currency */}
+              <FormControl isRequired>
+                <FormLabel>Currency</FormLabel>
+                <Select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value as Currency)}
+                  isDisabled={isSubmitting}
+                >
+                  {currencyOptions.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </Select>
+                <FormHelperText>
+                  Select the currency your gift card is denominated in (USD/CAD/GBP/EUR).
+                </FormHelperText>
+              </FormControl>
+
               {/* Value */}
               <FormControl isRequired>
-                <FormLabel>Value ($)</FormLabel>
+                <FormLabel>Value ({currency})</FormLabel>
                 <Input
                   type="number"
                   step="0.01"
@@ -276,7 +317,7 @@ const Submit = () => {
                 />
               </FormControl>
 
-              {/* Live Estimated NGN – with skeleton while loading */}
+              {/* Estimated NGN */}
               <Skeleton isLoaded={!loadingRates} startColor="gray.100" endColor="gray.200">
                 {giftCardType && value && estimated !== null ? (
                   <HStack
@@ -295,7 +336,7 @@ const Submit = () => {
                 ) : (
                   giftCardType && (
                     <Text fontSize="sm" color="gray.500" textAlign="center">
-                      Enter value to see estimated NGN credit
+                      No rate found for {giftCardType} ({currency}). Select another currency or ask admin to set the rate.
                     </Text>
                   )
                 )}
@@ -359,7 +400,7 @@ const Submit = () => {
                 w="full"
                 isLoading={isSubmitting}
                 loadingText="Submitting Gift Card..."
-                isDisabled={isSubmitting || images.length === 0 || !value || !giftCardType}
+                isDisabled={isSubmitting || images.length === 0 || !value || !giftCardType || !currency}
               >
                 Submit for Review
               </Button>

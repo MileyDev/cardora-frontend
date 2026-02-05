@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent, useMemo } from 'react';
 import {
   Box,
   Heading,
@@ -24,6 +24,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import CreateRate from '../components/CreateRate';
 
 const MotionBox = motion.create(Box);
 
@@ -56,20 +57,27 @@ export interface Withdrawal {
   };
 }
 
+type Currency = 'USD' | 'CAD' | 'GBP' | 'EUR';
 
 interface Rate {
   id: number;
   giftCardType: string;
-  exchangeRate: number;
+  currency: Currency | string;
+  // backend might return either field name depending on where you are in the refactor
+  exchangeRate?: number;
+  ratePerUnit?: number;
   updatedAt: string;
 }
+
+const currencyOptions: Currency[] = ['USD', 'CAD', 'GBP', 'EUR'];
 
 const AdminDashboard = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [rates, setRates] = useState<Rate[]>([]);
-  const [newRate, setNewRate] = useState<{ giftCardType: string; exchangeRate: string }>({
+  const [newRate, setNewRate] = useState<{ giftCardType: string; currency: Currency; exchangeRate: string }>({
     giftCardType: '',
+    currency: 'USD',
     exchangeRate: '',
   });
   const [loadingTransactions, setLoadingTransactions] = useState<boolean>(true);
@@ -80,7 +88,6 @@ const AdminDashboard = () => {
   const toast = useToast();
   const navigate = useNavigate();
 
-  // All dynamic colors at the very top (no conditionals before hooks)
   const submitBg = useColorModeValue('blue.500', 'blue.300');
   const buttonColor = useColorModeValue('white', 'gray.800');
   const approvedBg = useColorModeValue('green.500', 'green.300');
@@ -95,18 +102,15 @@ const AdminDashboard = () => {
       1: 'approved',
       2: 'rejected',
     };
-
-
     const label = map[status] ?? 'unknown';
     return label.charAt(0).toUpperCase() + label.slice(1);
   };
 
   const WithdrawalStatusMap: Record<number, string> = {
-    0: "Pending",
-    1: "Approved",
-    2: "Rejected",
+    0: 'Pending',
+    1: 'Approved',
+    2: 'Rejected',
   };
-
 
   useEffect(() => {
     fetchTransactions();
@@ -132,14 +136,12 @@ const AdminDashboard = () => {
       const response = await axios.get<Transaction[]>('https://api.cardora.net/api/admin/transactions', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log('Fetched transactions:', response.data);
       setTransactions(response.data);
     } catch (error: any) {
       const message =
         error.response?.data?.message ||
         (error.response?.status === 401 ? 'Session expired. Please log in again.' : 'Failed to fetch transactions');
 
-      console.log('Fetch transactions error:', error.response);
       toast({
         title: 'Error',
         description: message,
@@ -174,13 +176,11 @@ const AdminDashboard = () => {
     try {
       setLoadingWithdrawals(true);
 
-      const { data } = await axios.get<Withdrawal[]>(
-        'https://api.cardora.net/api/admin/withdrawals',
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const { data } = await axios.get<Withdrawal[]>('https://api.cardora.net/api/admin/withdrawals', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       setWithdrawals(data);
-      console.log(data);
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -217,17 +217,23 @@ const AdminDashboard = () => {
     }
   };
 
+  // Unique gift card types for the dropdown (no duplicates across currencies)
+  const giftCardOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of rates) {
+      if (r?.giftCardType) set.add(r.giftCardType);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [rates]);
+
   const approveWithdrawal = async (id: string) => {
     const token = localStorage.getItem('token');
-
     if (!token) return;
 
     try {
-      await axios.post(
-        `https://api.cardora.net/api/admin/withdrawals/${id}/approve`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.post(`https://api.cardora.net/api/admin/withdrawals/${id}/approve`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       toast({
         title: 'Success',
@@ -249,11 +255,10 @@ const AdminDashboard = () => {
 
       fetchWithdrawals();
     }
-  }
+  };
 
   const rejectWithdrawal = async (id: string) => {
     const token = localStorage.getItem('token');
-
     if (!token) return;
 
     try {
@@ -283,7 +288,7 @@ const AdminDashboard = () => {
 
       fetchWithdrawals();
     }
-  }
+  };
 
   const handleReject = async (id: number) => {
     const token = localStorage.getItem('token');
@@ -313,16 +318,11 @@ const AdminDashboard = () => {
         duration: 3000,
         isClosable: true,
       });
-
-      console.log(error.response);
-      console.log(token);
     }
-  }
+  };
 
   const handleApprove = async (id: number) => {
     const token = localStorage.getItem('token');
-    console.log(token);
-
     if (!token) return;
 
     try {
@@ -330,7 +330,7 @@ const AdminDashboard = () => {
         `https://api.cardora.net/api/admin/transactions/${id}/approve`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
-      )
+      );
 
       toast({
         title: 'Success',
@@ -342,8 +342,6 @@ const AdminDashboard = () => {
 
       fetchTransactions();
     } catch (error: any) {
-      console.log('Error approving: ', error.response);
-
       toast({
         title: 'Error',
         description: error.response?.data?.message || 'Failed to update transaction',
@@ -368,10 +366,11 @@ const AdminDashboard = () => {
       return;
     }
 
-    if (!newRate.giftCardType || !newRate.exchangeRate || isNaN(parseFloat(newRate.exchangeRate))) {
+    const parsedRate = parseFloat(newRate.exchangeRate);
+    if (!newRate.giftCardType || Number.isNaN(parsedRate) || parsedRate <= 0) {
       toast({
         title: 'Invalid input',
-        description: 'Please select a gift card type and enter a valid rate',
+        description: 'Select gift card type, currency, and enter a valid rate',
         status: 'warning',
         duration: 3000,
       });
@@ -385,21 +384,22 @@ const AdminDashboard = () => {
         'https://api.cardora.net/api/rates',
         {
           giftCardType: newRate.giftCardType,
-          exchangeRate: parseFloat(newRate.exchangeRate),
+          currency: newRate.currency,     // ✅ required now
+          ratePerUnit: parsedRate,       // backend maps to RatePerUnit
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       toast({
         title: 'Success',
-        description: `Rate for ${newRate.giftCardType} updated`,
+        description: `Rate updated for ${newRate.giftCardType} (${newRate.currency})`,
         status: 'success',
         duration: 3000,
         isClosable: true,
       });
 
       fetchRates();
-      setNewRate({ giftCardType: '', exchangeRate: '' });
+      setNewRate({ giftCardType: '', currency: 'USD', exchangeRate: '' });
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -413,15 +413,19 @@ const AdminDashboard = () => {
     }
   };
 
+  const displayRate = (r: Rate) => (r.ratePerUnit ?? r.exchangeRate ?? 0);
+
   return (
-    <MotionBox initial={{ opacity: 0, y: 40 }}
+    <MotionBox
+      initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.6 }}
       p={{ base: 4, md: 8 }}
       maxW="100vw"
       minW="100vw"
-      mx="auto">
+      mx="auto"
+    >
       <Heading mb={8} size="2xl" textAlign="center">
         Admin Dashboard
       </Heading>
@@ -481,11 +485,7 @@ const AdminDashboard = () => {
                         <Text
                           fontWeight="bold"
                           color={
-                            t.status === 1
-                              ? 'green.500'
-                              : t.status === 2
-                                ? 'red.500'
-                                : 'yellow.600'
+                            t.status === 1 ? 'green.500' : t.status === 2 ? 'red.500' : 'yellow.600'
                           }
                         >
                           {formatTransactionStatus(t.status)}
@@ -523,7 +523,6 @@ const AdminDashboard = () => {
           )}
         </MotionBox>
 
-        {/* Withdrawals Section */}
         {/* Withdrawals Section */}
         <MotionBox w="full">
           <Heading size="lg" mb={6}>
@@ -570,9 +569,7 @@ const AdminDashboard = () => {
                         {w.user.firstName} {w.user.lastName}
                       </Td>
 
-                      <Td fontWeight="bold">
-                        ₦{w.amount.toLocaleString()}
-                      </Td>
+                      <Td fontWeight="bold">₦{w.amount.toLocaleString()}</Td>
 
                       <Td>{w.bank.bankName}</Td>
                       <Td>{w.bank.accountNumber}</Td>
@@ -582,11 +579,7 @@ const AdminDashboard = () => {
                         <Text
                           fontWeight="bold"
                           color={
-                            w.status === 1
-                              ? 'green.500'
-                              : w.status === 2
-                                ? 'red.500'
-                                : 'yellow.600'
+                            w.status === 1 ? 'green.500' : w.status === 2 ? 'red.500' : 'yellow.600'
                           }
                         >
                           {WithdrawalStatusMap[w.status]}
@@ -596,18 +589,10 @@ const AdminDashboard = () => {
                       <Td>
                         {w.status === 0 && (
                           <HStack>
-                            <Button
-                              size="sm"
-                              colorScheme="green"
-                              onClick={() => approveWithdrawal(w.id)}
-                            >
+                            <Button size="sm" colorScheme="green" onClick={() => approveWithdrawal(w.id)}>
                               Approve
                             </Button>
-                            <Button
-                              size="sm"
-                              colorScheme="red"
-                              onClick={() => rejectWithdrawal(w.id)}
-                            >
+                            <Button size="sm" colorScheme="red" onClick={() => rejectWithdrawal(w.id)}>
                               Reject
                             </Button>
                           </HStack>
@@ -621,7 +606,6 @@ const AdminDashboard = () => {
           )}
         </MotionBox>
 
-
         {/* Rates Management Section */}
         <MotionBox w="full">
           <Heading size="lg" mb={6}>
@@ -634,7 +618,6 @@ const AdminDashboard = () => {
             </Center>
           ) : (
             <>
-              {/* Update Form */}
               <form onSubmit={handleUpdateRate}>
                 <VStack spacing={5} align="stretch" mb={8}>
                   <FormControl isRequired>
@@ -645,27 +628,37 @@ const AdminDashboard = () => {
                       onChange={(e) => setNewRate({ ...newRate, giftCardType: e.target.value })}
                       isDisabled={isSubmittingRate || rates.length === 0}
                     >
-                      {rates.map((r) => (
-                        <option key={r.id} value={r.giftCardType}>
-                          {r.giftCardType}
+                      {giftCardOptions.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
                         </option>
                       ))}
                     </Select>
-                    {rates.length === 0 && (
-                      <Text color="yellow.500" mt={2} fontSize="sm">
-                        No rates available yet. Add new rates using POST /api/rates.
-                      </Text>
-                    )}
                   </FormControl>
 
                   <FormControl isRequired>
-                    <FormLabel>New Rate (USD)</FormLabel>
+                    <FormLabel>Currency</FormLabel>
+                    <Select
+                      value={newRate.currency}
+                      onChange={(e) => setNewRate({ ...newRate, currency: e.target.value as Currency })}
+                      isDisabled={isSubmittingRate}
+                    >
+                      {currencyOptions.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <FormControl isRequired>
+                    <FormLabel>New Rate (NGN per 1 unit)</FormLabel>
                     <Input
                       type="number"
                       step="0.01"
                       value={newRate.exchangeRate}
                       onChange={(e) => setNewRate({ ...newRate, exchangeRate: e.target.value })}
-                      placeholder="e.g. 0.85"
+                      placeholder="e.g. 1450"
                       isDisabled={isSubmittingRate}
                     />
                   </FormControl>
@@ -685,7 +678,8 @@ const AdminDashboard = () => {
                 </VStack>
               </form>
 
-              {/* Rates Table */}
+              <CreateRate onCreated={fetchRates} />
+
               <MotionBox
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -703,7 +697,8 @@ const AdminDashboard = () => {
                     <Tr>
                       <Th>ID</Th>
                       <Th>Gift Card</Th>
-                      <Th isNumeric>Rate (USD)</Th>
+                      <Th>Currency</Th>
+                      <Th isNumeric>Rate (NGN/unit)</Th>
                       <Th>Updated</Th>
                     </Tr>
                   </Thead>
@@ -712,8 +707,9 @@ const AdminDashboard = () => {
                       <Tr key={r.id}>
                         <Td>{r.id}</Td>
                         <Td fontWeight="medium">{r.giftCardType}</Td>
+                        <Td>{String(r.currency || 'USD')}</Td>
                         <Td isNumeric fontWeight="bold">
-                          ${r.exchangeRate.toFixed(4)}
+                          ₦{displayRate(r).toLocaleString('en-NG', { maximumFractionDigits: 2 })}
                         </Td>
                         <Td fontSize="sm" color="gray.500">
                           {new Date(r.updatedAt).toLocaleString('en-NG', {

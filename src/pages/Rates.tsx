@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Heading,
@@ -15,6 +15,9 @@ import {
   VStack,
   useToast,
   useColorModeValue,
+  Select,
+  HStack,
+  Badge,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -22,17 +25,43 @@ import { motion } from 'framer-motion';
 
 const MotionBox = motion.create(Box);
 
-interface Rate {
+type Currency = 'USD' | 'CAD' | 'GBP' | 'EUR';
+
+interface RateApi {
   id: number;
   giftCardType: string;
-  exchangeRate: number;
+  // backend model: Currency enum (could come as number or string depending on JSON settings)
+  currency: number | string;
+  // backend model: RatePerUnit (NGN per 1 unit of that currency)
+  ratePerUnit: number;
   updatedAt: string;
 }
 
+const currencyLabel = (value: number | string): Currency | 'UNKNOWN' => {
+  if (typeof value === 'string') {
+    const v = value.trim().toUpperCase();
+    if (v === 'USD' || v === 'CAD' || v === 'GBP' || v === 'EUR') return v;
+    return 'UNKNOWN';
+  }
+
+  // enum mapping from your backend:
+  // USD=1, CAD=2, GBP=3, EUR=4
+  const map: Record<number, Currency> = {
+    1: 'USD',
+    2: 'CAD',
+    3: 'GBP',
+    4: 'EUR',
+  };
+
+  return map[value] ?? 'UNKNOWN';
+};
+
 const Rates = () => {
-  const [rates, setRates] = useState<Rate[]>([]);
+  const [rates, setRates] = useState<RateApi[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [currencyFilter, setCurrencyFilter] = useState<'ALL' | Currency>('ALL');
 
   const toast = useToast();
   const navigate = useNavigate();
@@ -60,20 +89,17 @@ const Rates = () => {
         setLoading(true);
         setError(null);
 
-        const response = await axios.get<Rate[]>('https://api.cardora.net/api/rates', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const response = await axios.get<RateApi[]>('https://api.cardora.net/api/rates', {
+          headers: { Authorization: `Bearer ${token}` },
         });
 
-        setRates(response.data);
+        setRates(Array.isArray(response.data) ? response.data : []);
       } catch (err: any) {
         console.error('Error fetching rates:', err);
 
         let message = 'Failed to load gift card rates';
 
         if (err.response) {
-          // Server responded with error
           if (err.response.status === 401) {
             message = 'Session expired. Please log in again.';
             localStorage.removeItem('token');
@@ -105,6 +131,36 @@ const Rates = () => {
     fetchRates();
   }, [toast, navigate]);
 
+  const normalized = useMemo(() => {
+    return rates.map((r) => ({
+      ...r,
+      currencyText: currencyLabel(r.currency),
+    }));
+  }, [rates]);
+
+  const filtered = useMemo(() => {
+    const list =
+      currencyFilter === 'ALL'
+        ? normalized
+        : normalized.filter((r) => r.currencyText === currencyFilter);
+
+    // Sort: GiftCardType ASC, Currency ASC, UpdatedAt DESC
+    return [...list].sort((a, b) => {
+      const g = a.giftCardType.localeCompare(b.giftCardType);
+      if (g !== 0) return g;
+
+      const c = String(a.currencyText).localeCompare(String(b.currencyText));
+      if (c !== 0) return c;
+
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+  }, [normalized, currencyFilter]);
+
+  const hasUnknownCurrency = useMemo(
+    () => normalized.some((r) => r.currencyText === 'UNKNOWN'),
+    [normalized]
+  );
+
   if (loading) {
     return (
       <Center minH="100vh">
@@ -126,10 +182,7 @@ const Rates = () => {
           <Text color="gray.600" maxW="md" textAlign="center">
             {error}
           </Text>
-          <Button
-            colorScheme="blue"
-            onClick={() => window.location.reload()}
-          >
+          <Button colorScheme="blue" onClick={() => window.location.reload()}>
             Try Again
           </Button>
         </VStack>
@@ -139,14 +192,40 @@ const Rates = () => {
 
   return (
     <Box p={{ base: 4, md: 8 }} minW="100vw" mx="auto">
-      <Heading mb={6} size="xl" textAlign="center">
-        Gift Card Exchange Rates
-      </Heading>
+      <HStack justify="space-between" align="center" mb={6} flexWrap="wrap" gap={3}>
+        <Heading size="xl">Gift Card Exchange Rates</Heading>
 
-      {rates.length === 0 ? (
+        <HStack gap={3}>
+          <Select
+            value={currencyFilter}
+            onChange={(e) => setCurrencyFilter(e.target.value as 'ALL' | Currency)}
+            w={{ base: 'full', md: '220px' }}
+          >
+            <option value="ALL">All currencies</option>
+            <option value="USD">USD</option>
+            <option value="CAD">CAD</option>
+            <option value="GBP">GBP</option>
+            <option value="EUR">EUR</option>
+          </Select>
+
+          <Badge colorScheme="green" fontSize="sm" px={3} py={1} borderRadius="md">
+            {filtered.length} rate{filtered.length === 1 ? '' : 's'}
+          </Badge>
+        </HStack>
+      </HStack>
+
+      {hasUnknownCurrency && (
+        <Box mb={4}>
+          <Text fontSize="sm" color="yellow.600">
+            Some rates have an unknown currency value (likely older rows with currency=0). Your backend patch will fix this.
+          </Text>
+        </Box>
+      )}
+
+      {filtered.length === 0 ? (
         <Center py={10}>
           <Text color="gray.500" fontSize="lg">
-            No rates available at the moment
+            No rates available for this filter
           </Text>
         </Center>
       ) : (
@@ -166,17 +245,39 @@ const Rates = () => {
             <Thead bg={useColorModeValue('gray.50', 'gray.700')}>
               <Tr>
                 <Th>Gift Card</Th>
-                <Th isNumeric>Rate (NGN per USD)</Th>
+                <Th>Currency</Th>
+                <Th isNumeric>Rate (NGN per unit)</Th>
                 <Th>Updated</Th>
               </Tr>
             </Thead>
+
             <Tbody>
-              {rates.map((rate) => (
+              {filtered.map((rate) => (
                 <Tr key={rate.id}>
                   <Td fontWeight="medium">{rate.giftCardType}</Td>
-                  <Td isNumeric fontWeight="bold">
-                    ₦{rate.exchangeRate.toFixed(2)}
+
+                  <Td>
+                    <Badge
+                      colorScheme={
+                        rate.currencyText === 'USD'
+                          ? 'blue'
+                          : rate.currencyText === 'GBP'
+                          ? 'purple'
+                          : rate.currencyText === 'EUR'
+                          ? 'orange'
+                          : rate.currencyText === 'CAD'
+                          ? 'teal'
+                          : 'gray'
+                      }
+                    >
+                      {rate.currencyText}
+                    </Badge>
                   </Td>
+
+                  <Td isNumeric fontWeight="bold">
+                    ₦{Number(rate.ratePerUnit).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                  </Td>
+
                   <Td>
                     {new Date(rate.updatedAt).toLocaleString('en-NG', {
                       dateStyle: 'medium',
