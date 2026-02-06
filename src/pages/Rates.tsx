@@ -247,7 +247,6 @@ const Rates = () => {
                 <Th>Gift Card</Th>
                 <Th>Currency</Th>
                 <Th isNumeric>Rate (NGN per unit)</Th>
-                <Th>Updated</Th>
               </Tr>
             </Thead>
 
@@ -276,13 +275,6 @@ const Rates = () => {
 
                   <Td isNumeric fontWeight="bold">
                     ₦{Number(rate.ratePerUnit).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
-                  </Td>
-
-                  <Td>
-                    {new Date(rate.updatedAt).toLocaleString('en-NG', {
-                      dateStyle: 'medium',
-                      timeStyle: 'short',
-                    })}
                   </Td>
                 </Tr>
               ))}
